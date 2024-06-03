@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue 3 App</title>
+    <!-- Vue 3 CDN -->
+    <!-- <script src="https://unpkg.com/vue@next"></script> -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    
+        /* Additional CSS for styling */
+        .floating-box {
+            width: 400px; /* 设置宽度 */
+            height: 300px; /* 设置高度 */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.5);
+            z-index: 9999;
+        }
+
+        /* Button Style */
+        .submit-btn {
+            transition: background-color 0.3s ease;
+        }
+
+        .submit-btn.clicked {
+            background-color: #0056b3 !important;
+            border-color: #0056b3 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Main Application -->
+        <div class="container mt-5">
+            <!-- <img src="background.jpg" alt="Background Image" class="img-fluid mb-4"> -->
+            <div class="row">
+                <div class="col-md-6 offset-md-3">
+                    <!-- Input Fields -->
+                    <div v-for="(label, index) in labels" :key="index" class="mb-3">
+                        <label>{{ label }}</label>
+                        <input type="text" v-model="formData[index]" :placeholder="defaultValues[index]" class="form-control">
+                    </div>
+                    <!-- Submit Button -->
+                    <button @click="submitForm" :class="{ 'btn-primary': !isButtonClicked, 'clicked': isButtonClicked }" class="btn submit-btn">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Box for Text Display -->
+        <div v-if="showCompletion" class="floating-box">
+            <button @click="closeCompletionBox" class="btn btn-sm btn-danger" style="position: absolute; top: 0; right: 0;">X</button>
+            <textarea v-model="completion" class="form-control mb-3" rows="5" readonly></textarea>
+            <button @click="copyToClipboard" class="btn btn-primary">Copy</button>
+        </div>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    labels: ['Elements', 'Interaction', 'Composition', 'Lighting', 'Visual_Hierarchy', 'Atmospheric_Expression', 'Logo'],
+                    defaultValues: ['三个小矮子，蘑菇小屋', '牵手拥抱', '女孩居中,logo在左上角', '柔和的阳光', '平视', '温馨甜蜜', 'Ben'],
+                    formData: ['', '', '', '', '', '', ''],
+                    completion: '',
+                    showCompletion: false,
+                    isButtonClicked: false
+                };
+            },
+            methods: {
+                submitForm() {
+                    this.isButtonClicked = true;
+                    const formData = new FormData();
+                    this.formData.forEach((value, index) => {
+                        formData.append(this.labels[index], value);
+                    });
+
+                    fetch('http://10.3.20.127:8250/structer_lcm', {
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        this.completion = data.completion;
+                        this.showCompletion = true;
+                        // Reset button state after 500ms
+                        setTimeout(() => {
+                            this.isButtonClicked = false;
+                        }, 500);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                },
+                closeCompletionBox() {
+                    this.showCompletion = false;
+                },
+                copyToClipboard() {
+                    const textarea = document.querySelector('textarea');
+                    textarea.select();
+                    document.execCommand('copy');
+                    alert('Text copied to clipboard!');
+                }
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
